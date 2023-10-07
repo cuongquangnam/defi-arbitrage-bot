@@ -1,0 +1,19 @@
+{
+	"dependencies": {
+		"@nomicfoundation/hardhat-toolbox": "^3.0.0",
+		"@openzeppelin/contracts": "^4.9.3",
+		"@uniswap/sdk": "^3.0.3",
+		"@uniswap/sdk-core": "^4.0.7",
+		"@uniswap/swap-router-contracts": "v1.1.0",
+		"@uniswap/v2-periphery": "1.1.0-beta.0",
+		"@uniswap/v3-core": "^1.0.1",
+		"@uniswap/v3-periphery": "^1.4.4",
+		"@uniswap/v3-sdk": "^3.10.0",
+		"dotenv": "^16.3.1",
+		"ethers": "6.7.1",
+		"ethers5": "npm:ethers@5.7.0"
+	},
+	"devDependencies": {
+		"hardhat": "^2.17.4"
+	}
+}
