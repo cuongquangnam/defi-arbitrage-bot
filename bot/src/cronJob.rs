@@ -3,10 +3,9 @@ use ethers::{
     middleware::SignerMiddleware,
     prelude::abigen,
     providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer},
+    signers::LocalWallet,
     types::{Address, Bytes, U256},
 };
-use std::env;
 use std::{str::FromStr, sync::Arc};
 use tokio::time::{sleep, Duration};
 
@@ -14,6 +13,7 @@ pub async fn cron_job(
     rpc_url: String,
     test: bool,
     flash_loan_address: Address,
+    wallet: LocalWallet,
 ) -> Result<(), Box<dyn std::error::Error + 'static>> {
     dotenv().ok();
 
@@ -26,8 +26,6 @@ pub async fn cron_job(
     let provider = Provider::<Http>::try_from(rpc_url)?;
     println!("After initializing provider");
     println!("{:?}", provider.get_chainid().await.unwrap());
-    let wallet: LocalWallet =
-        env::var("ANVIL_PRIVATE_KEY").unwrap().parse::<LocalWallet>()?.with_chain_id(ethers::types::Chain::Mainnet);
     let client = SignerMiddleware::new(provider.clone(), wallet.clone());
 
     println!("Before initialize flash_loan_contract");

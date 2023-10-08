@@ -21,7 +21,7 @@ use std::sync::Arc;
 // }
 
 // return anvil instance so that it would not be deallocated later
-async fn setup() -> Result<(String, Address, AnvilInstance), Box<dyn std::error::Error>> {
+async fn setup() -> Result<(String, Address, AnvilInstance, LocalWallet), Box<dyn std::error::Error>> {
     dotenv().ok();
 
     // // prepare docker for testing
@@ -76,8 +76,9 @@ async fn setup() -> Result<(String, Address, AnvilInstance), Box<dyn std::error:
     // let provider = Provider::<Http>::try_from("http://localhost:8080")?;
     let provider = Provider::<Http>::try_from(anvil.endpoint())?;
     let wallet: LocalWallet = anvil.keys()[0].clone().into();
+    let wallet_with_chain_id = wallet.with_chain_id(ethers::types::Chain::Mainnet);
 
-    let client = Arc::new(SignerMiddleware::new(provider.clone(), wallet.with_chain_id(ethers::types::Chain::Mainnet)));
+    let client = Arc::new(SignerMiddleware::new(provider.clone(), wallet_with_chain_id.clone()));
     assert_eq!(client.address(), "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".parse::<Address>()?);
 
     // send 10_000 WETH to our address
@@ -136,15 +137,15 @@ async fn setup() -> Result<(String, Address, AnvilInstance), Box<dyn std::error:
         .unwrap();
     let usdc_contract = IERC20::new(usdc_address, client.clone());
     println!("balance is {:?}", usdc_contract.balance_of(client.address()).await);
-    Ok((anvil.endpoint(), flash_loan_contract.address(), anvil))
+    Ok((anvil.endpoint(), flash_loan_contract.address(), anvil, wallet_with_chain_id.clone()))
 }
 
 #[tokio::test]
 async fn test_loop() {
     print!("Hello");
 
-    let (endpoint, flash_loan_address, anvil) = setup().await.unwrap();
-    cron_job(endpoint, true, flash_loan_address).await.unwrap()
+    let (endpoint, flash_loan_address, anvil, wallet_with_chain_id) = setup().await.unwrap();
+    cron_job(endpoint, true, flash_loan_address, wallet_with_chain_id).await.unwrap()
 
     // teardown(&docker, &id).await;
 }
