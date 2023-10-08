@@ -19,7 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 println!("Flashed ");
                 println!("Transaction hash is {:?}", receipt.transaction_hash);
             }
-            Err(_) => continue,
+            // no arbitrage opportunity, wait for 15 mins and check again
+            Err(_) => {}
         };
         // poll every 15 mins
         sleep(Duration::from_secs(15 * 60)).await;

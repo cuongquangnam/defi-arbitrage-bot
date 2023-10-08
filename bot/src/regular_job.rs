@@ -17,16 +17,12 @@ pub async fn regular_job(
     abigen!(IERC20, "../contracts/out/ERC20/IERC20.sol/IERC20.json");
     abigen!(FlashLoan, "../contracts/out/FlashLoan.sol/FlashLoan.json");
 
-    // setup the signer
     println!("{}", rpc_url);
     let provider = Provider::<Http>::try_from(rpc_url.clone())?;
     let client = SignerMiddleware::new(provider.clone(), wallet.clone());
 
     let flash_loan_contract =
         FlashLoan::new(flash_loan_address, Arc::new(client.clone()));
-
-    // strategy is to borrow USDC, then use USDC to buy WETH, and then use this WETH to buy USDC, then return back
-    // flashLoan.flashLoan(0, 1_000_000_000, abi.encode(0, 1_000_000_000, 500));
 
     let DAI_TOKEN_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
         .parse::<Address>()
