@@ -38,9 +38,12 @@ contract FlashLoanTest is Test {
         // borrow 1 WETH to flashloan
         uint256 amountWETHIncrease = flashLoan.flashLoan(0, 1e18, abi.encode(0, 1e18, 500, DAI_TOKEN));
         uint256 gasLeftAfterFlash = gasleft();
+        // assume extreme case, we spent 60 gwei on tx price
         uint256 weiSpentOnGas = (gasLeftBeforeFlash - gasLeftAfterFlash) * 60 gwei;
         uint256 balanceWETHAfterFlash = IERC20(WETH_TOKEN).balanceOf(address(flashLoan));
+        // assert that flash loan contract balance increase more than the gas we spent on sending out the transaction
         assertLt(weiSpentOnGas, balanceWETHAfterFlash - balanceWETHBeforeFlash);
+        // check the result of the flash loan function
         assertEq(amountWETHIncrease, balanceWETHAfterFlash - balanceWETHBeforeFlash);
     }
 

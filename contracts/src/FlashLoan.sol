@@ -7,12 +7,14 @@ import "@uniswap/swap-router-contracts/contracts/interfaces/IV2SwapRouter.sol";
 import "@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol";
 // import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 import "forge-std/console.sol";
 
 error NOT_UNISWAP_V3_POOL_ADDRESS();
 error FLASH_LOAN_NOT_SUCCESSFUL();
 
-contract FlashLoan is IUniswapV3FlashCallback { 
+contract FlashLoan is IUniswapV3FlashCallback, Ownable { 
     address constant DAI_TOKEN = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     address constant USDC_TOKEN = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address constant WETH_TOKEN = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -21,11 +23,11 @@ contract FlashLoan is IUniswapV3FlashCallback {
 
     address SWAP_ROUTER_02_ADDRESS = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 
-    constructor() {
+    constructor() Ownable() {
         V3_WETH_USDC_ADDRESS = IUniswapV3Factory(UNISWAP_V3_FACTORY).getPool(WETH_TOKEN, USDC_TOKEN, 500);
     }
 
-    function flashLoan(uint256 amountUSDCToBorrow, uint256 amountWETHToBorrow, bytes calldata data) public returns (uint256 amountWETHIncrease) {
+    function flashLoan(uint256 amountUSDCToBorrow, uint256 amountWETHToBorrow, bytes calldata data) external onlyOwner returns (uint256 amountWETHIncrease) {
         uint256 balanceWETHBeforeFlash = IERC20(WETH_TOKEN).balanceOf(address(this));
         IUniswapV3Pool(V3_WETH_USDC_ADDRESS).flash(address(this), amountUSDCToBorrow, amountWETHToBorrow, data);
         uint256 balanceWETHAfterFlash = IERC20(WETH_TOKEN).balanceOf(address(this));
@@ -77,5 +79,8 @@ contract FlashLoan is IUniswapV3FlashCallback {
         IV3SwapRouter(SWAP_ROUTER_02_ADDRESS).exactInputSingle(params);
     }
 
+    function withdrawToken(address tokenAddress, uint256 amount) external onlyOwner {
+        IERC20(tokenAddress).transfer(msg.sender, amount);
+    }
 }
 

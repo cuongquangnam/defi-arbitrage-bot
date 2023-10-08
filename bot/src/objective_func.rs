@@ -9,6 +9,7 @@ use ethers_core::rand::thread_rng;
 use futures_util::Future;
 use std::sync::Arc;
 
+// https://en.wikipedia.org/wiki/Golden-section_search
 pub async fn golden_section_search<F, Fut>(
     mut a: U256,
     mut b: U256,
@@ -68,9 +69,9 @@ where
 async fn test_golden_section_search() {
     async fn func(
         x: U256,
-        rpc_url: String,
-        flash_loan_address: Address,
-        wallet: LocalWallet,
+        _rpc_url: String,
+        _flash_loan_address: Address,
+        _wallet: LocalWallet,
     ) -> U512 {
         // 100 * x + 1_000_000 - x**2
         U512::from(x)
@@ -79,7 +80,7 @@ async fn test_golden_section_search() {
             .checked_add(U512::from(1_000_000))
             .unwrap()
             - x.full_mul(x)
-    };
+    }
     let min = U256::from(10);
     let max = U256::from(100);
     assert_eq!(

@@ -7,7 +7,7 @@ use ethers::{
     types::{Address, U256},
 };
 use ethers_core::types::TransactionReceipt;
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
 pub async fn regular_job(
     rpc_url: String,
@@ -31,6 +31,8 @@ pub async fn regular_job(
     let DAI_TOKEN_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
         .parse::<Address>()
         .unwrap();
+
+    // find the range lower_bound and upper_bound so at least the flash loan does not fail due to not being able to pay back the uniswap pool
     // lower bound is 10**15 / 10**18 = 0.001 WETH
     let mut lower_bound = U256::exp10(15);
     loop {
