@@ -14,7 +14,7 @@ contract FlashLoanTest is Test {
     
     function setUp() public {
         // fork mainnet
-        mainnetFork = vm.createFork(vm.envString("MAINNET_PROVIDER_URL"), 18297087);
+        mainnetFork = vm.createFork("https://rpc.ankr.com/eth", 18297087);
     }
 
     function testFlashLoan() public {
