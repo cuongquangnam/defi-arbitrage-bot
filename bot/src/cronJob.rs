@@ -35,17 +35,26 @@ pub async fn cron_job(
     // strategy is to borrow USDC, then use USDC to buy WETH, and then use this WETH to buy USDC, then return back
     // flashLoan.flashLoan(0, 1_000_000_000, abi.encode(0, 1_000_000_000, 500));
 
+    let DAI_TOKEN_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F".parse::<Address>().unwrap();
+
     if test {
         let data = ethers::abi::encode(&[
             ethers::abi::Token::Uint(U256::from(0)),
-            ethers::abi::Token::Uint(U256::from(1_000_000_000i64)),
+            ethers::abi::Token::Uint(U256::from(U256::exp10(18))),
             ethers::abi::Token::Uint(U256::from(500)),
+            ethers::abi::Token::Address(DAI_TOKEN_ADDRESS),
         ]);
         println!("Before flash loan");
-        match flash_loan_contract.flash_loan(U256::from(0), U256::from(1_000_000_000i64), data.into()).call().await {
-            Ok(value) => println!("Yes, can flash loan"),
+        let flash_call = flash_loan_contract.flash_loan(U256::from(0), U256::exp10(18), data.into());
+        match flash_call.call().await {
+            Ok(weth_balance_increase) => {
+                let gas_estimate = flash_call.estimate_gas().await.unwrap();
+                if weth_balance_increase > gas_estimate {
+                    println!("Let's flash loan!!!");
+                    flash_call.send().await.unwrap().await.unwrap().unwrap();
+                }
+            }
             Err(e) => {
-                println!("{:?}", e);
                 return Err(Box::new(e));
             }
         };
