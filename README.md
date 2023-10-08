@@ -1,5 +1,7 @@
 ## Defi Trading Bot using Foundry and Rust
 
+This is a fun project to build trading bot using foundry and rust
+
 ### Directory structure
 
 ```
