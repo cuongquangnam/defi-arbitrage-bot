@@ -2,9 +2,9 @@ use crate::objective_func;
 use ethers::{
     middleware::SignerMiddleware,
     prelude::abigen,
-    providers::{Http, Provider},
+    providers::{Http, Middleware, Provider},
     signers::LocalWallet,
-    types::{Address, U256},
+    types::{Address, U256, U512},
 };
 use ethers_core::types::TransactionReceipt;
 use std::sync::Arc;
@@ -72,6 +72,10 @@ pub async fn regular_job(
             }
         }
     }
+
+    // we take estimated max_fee_per_gas as gas price in the worst case
+    let max_fee_per_gas = provider.estimate_eip1559_fees(None).await.unwrap().0;
+
     let optimal_val = objective_func::golden_section_search(
         lower_bound,
         upper_bound,
@@ -80,8 +84,10 @@ pub async fn regular_job(
         rpc_url.clone(),
         flash_loan_address,
         wallet.clone(),
+        max_fee_per_gas,
     )
     .await;
+    println!("Optimal value is {:?}", optimal_val);
     let data = ethers::abi::encode(&[
         ethers::abi::Token::Uint(U256::from(0)),
         ethers::abi::Token::Uint(optimal_val),
@@ -92,8 +98,10 @@ pub async fn regular_job(
         flash_loan_contract.flash_loan(U256::from(0), optimal_val, data.into());
     match flash_call.call().await {
         Ok(weth_balance_increase) => {
-            let gas_estimate = flash_call.estimate_gas().await.unwrap();
-            if weth_balance_increase > gas_estimate {
+            let gas_unit_estimate = flash_call.estimate_gas().await.unwrap();
+            let gas_cost_estimate =
+                gas_unit_estimate.checked_mul(max_fee_per_gas).unwrap();
+            if weth_balance_increase > gas_cost_estimate {
                 println!("Let's flash loan!!!");
                 let tx_receipt =
                     flash_call.send().await.unwrap().await.unwrap().unwrap();

@@ -1,7 +1,7 @@
 use ethers::{
     middleware::SignerMiddleware,
     prelude::abigen,
-    providers::{Http, Provider},
+    providers::{Http, Middleware, Provider},
     signers::LocalWallet,
     types::{Address, U256, U512},
 };
@@ -18,9 +18,10 @@ pub async fn golden_section_search<F, Fut>(
     rpc_url: String,
     flash_loan_address: Address,
     wallet: LocalWallet,
+    max_fee_per_gas: U256,
 ) -> U256
 where
-    F: Fn(U256, String, Address, LocalWallet) -> Fut,
+    F: Fn(U256, String, Address, LocalWallet, U256) -> Fut,
     Fut: Future<Output = U512>,
 {
     let golden_ratio = U512::from(1618);
@@ -36,9 +37,22 @@ where
 
     while b - a > tolerance {
         println!("b and a are {:?} {:?}", b, a);
-        if func(x1, rpc_url.clone(), flash_loan_address, wallet.clone()).await
-            > func(x2, rpc_url.clone(), flash_loan_address, wallet.clone())
-                .await
+        if func(
+            x1,
+            rpc_url.clone(),
+            flash_loan_address,
+            wallet.clone(),
+            max_fee_per_gas,
+        )
+        .await
+            > func(
+                x2,
+                rpc_url.clone(),
+                flash_loan_address,
+                wallet.clone(),
+                max_fee_per_gas,
+            )
+            .await
         {
             b = x2;
             x2 = x1;
@@ -72,6 +86,7 @@ async fn test_golden_section_search() {
         _rpc_url: String,
         _flash_loan_address: Address,
         _wallet: LocalWallet,
+        _max_fee_per_gas: U256,
     ) -> U512 {
         // 100 * x + 1_000_000 - x**2
         U512::from(x)
@@ -83,6 +98,7 @@ async fn test_golden_section_search() {
     }
     let min = U256::from(10);
     let max = U256::from(100);
+    let max_fee_per_gas = U256::from(0);
     assert_eq!(
         golden_section_search(
             min,
@@ -91,18 +107,21 @@ async fn test_golden_section_search() {
             U256::from(1),
             "".to_string(),
             Address::zero(),
-            LocalWallet::new(&mut thread_rng())
+            LocalWallet::new(&mut thread_rng()),
+            max_fee_per_gas
         )
         .await,
         U256::from(50)
     );
 }
 
+// objective function to calculate the profit we can make from the flash loan
 pub async fn objective_func_for_flash_loan(
     borrow_amount: U256,
     rpc_url: String,
     flash_loan_address: Address,
     wallet: LocalWallet,
+    max_fee_per_gas: U256,
 ) -> U512 {
     abigen!(IERC20, "../contracts/out/ERC20/IERC20.sol/IERC20.json");
     abigen!(FlashLoan, "../contracts/out/FlashLoan.sol/FlashLoan.json");
@@ -130,19 +149,24 @@ pub async fn objective_func_for_flash_loan(
     );
     match flash_call.call().await {
         Ok(weth_balance_increase) => {
-            let gas_estimate = flash_call.estimate_gas().await.unwrap();
-            let u512_gas_estimate: U512 = gas_estimate.try_into().unwrap();
-            let u512_weth_balance_increase: U512 =
-                weth_balance_increase.try_into().unwrap();
-            // 2**256 - 1 + 2**256 - 1 < 2*512 - 1, still within the range to handle
+            let gas_unit_estimate = flash_call.estimate_gas().await.unwrap();
+            let u512_gas_cost_estimate: U512 =
+            // using checked_mul here is because the expectation that the gas cost in wei
+            // is not larger than u256
+                gas_unit_estimate.checked_mul(max_fee_per_gas).unwrap().into();
+            let u512_weth_balance_increase: U512 = weth_balance_increase.into();
+            // add 2**256 - 1 in case u512_weth_balance_increase < u512_gas_cost_estimate
+            // 2**256 - 1 + 2**256 - 1 < 2*512 - 1, still within the range of U512 to handle
             let diff = u512_weth_balance_increase
                 .checked_add(U512::from(2).pow(256.into()) - 1)
                 .unwrap()
-                .checked_sub(u512_gas_estimate)
+                .checked_sub(u512_gas_cost_estimate)
                 .unwrap();
             println!("{:?}", diff);
             return diff;
         }
+        // despite alrady eliminating the case where we can't pay back the pool
+        // still, just return 0 in case something goes wrong as 0 has the lowest value
         Err(e) => {
             println!("{:?}", e);
             return U512::from(0);
