@@ -1,6 +1,6 @@
 ## Defi Trading Bot using Foundry and Rust
 
-This is a fun project to build trading bot using foundry and rust
+This is a fun project to build trading bot using foundry and rust with the purpose to deploy on Ethereum mainnet
 
 ### Directory structure
 
@@ -30,7 +30,11 @@ cd bot && cargo test
 
 ### Run the bot
 
-Create an .env file in the root directory of the repo
+You need first to deploy the smart contract onto ETH mainnet.
+
+After that, create an .env file in the root directory of the repo.
+
+Finally, execute these commands.
 
 ```
 cd bot && cargo run
