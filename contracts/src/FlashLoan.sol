@@ -5,11 +5,8 @@ import "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.s
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@uniswap/swap-router-contracts/contracts/interfaces/IV2SwapRouter.sol";
 import "@uniswap/swap-router-contracts/contracts/interfaces/IV3SwapRouter.sol";
-// import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-import "forge-std/console.sol";
 
 error NOT_UNISWAP_V3_POOL_ADDRESS();
 error FLASH_LOAN_NOT_SUCCESSFUL();
